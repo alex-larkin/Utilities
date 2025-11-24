@@ -63,8 +63,45 @@ Sub AutoExec()
     Application.StatusBar = "Macro sync complete"
     Sleep 2000 ' Show for 2 seconds (2000 milliseconds)
     Application.StatusBar = False ' Clear status bar
+    
+    ' Load and hide all templates to make VBA projects accessible
+    Debug.Print "Getting ready to call OpenAllTemplates"
+
+    ' First, explicitly load Utilities.dotm so we can call its macros
+    On Error Resume Next
+    Dim utilDoc As Document
+    Dim utilPath As String
+    utilPath = Environ("APPDATA") & "\Microsoft\Templates\Utilities.dotm"
+
+    Debug.Print "Loading Utilities.dotm from: " & utilPath
+    Set utilDoc = Documents.Open(FileName:=utilPath, _
+                                  ReadOnly:=False, _
+                                  AddToRecentFiles:=False, _
+                                  Visible:=False)
+
+    If Err.Number <> 0 Then
+        Debug.Print "ERROR loading Utilities.dotm: " & Err.Number & " - " & Err.Description
+        Err.Clear
+    Else
+        Debug.Print "Utilities.dotm loaded successfully"
+
+        ' Now we can call its macro
+        Debug.Print "Calling LoadTemplates..."
+        Application.Run "Utilities.OpenAllTemplates_v2.LoadTemplates"
+
+        If Err.Number <> 0 Then
+            Debug.Print "ERROR calling LoadTemplates: " & Err.Number & " - " & Err.Description
+            Err.Clear
+        Else
+            Debug.Print "LoadTemplates completed successfully"
+        End If
+    End If
+    On Error GoTo 0
+
 
     Debug.Print "=== AutoExec END ==="
+    
+    
 End Sub
 
 ' This runs automatically when Word closes
