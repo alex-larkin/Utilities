@@ -74,7 +74,7 @@ Sub AutoExec()
     utilPath = Environ("APPDATA") & "\Microsoft\Templates\Utilities.dotm"
 
     Debug.Print "Loading Utilities.dotm from: " & utilPath
-    Set utilDoc = Documents.Open(FileName:=utilPath, _
+    Set utilDoc = Documents.Open(fileName:=utilPath, _
                                   ReadOnly:=False, _
                                   AddToRecentFiles:=False, _
                                   Visible:=False)
@@ -87,7 +87,7 @@ Sub AutoExec()
 
         ' Now we can call its macro
         Debug.Print "Calling LoadTemplates..."
-        Application.Run "Utilities.OpenAllTemplates_v2.LoadTemplates"
+        Application.Run "OpenAllTemplates_v2.LoadTemplates"
 
         If Err.Number <> 0 Then
             Debug.Print "ERROR calling LoadTemplates: " & Err.Number & " - " & Err.Description
