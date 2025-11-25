@@ -85,9 +85,40 @@ Sub AutoExec()
     Else
         Debug.Print "Utilities.dotm loaded successfully"
 
+        ' === DIAGNOSTIC SECTION ===
+        Debug.Print "--- DIAGNOSTICS: Examining loaded VBA projects ---"
+
+        ' Check if the document is actually loaded
+        Debug.Print "utilDoc.Name: " & utilDoc.Name
+        Debug.Print "utilDoc.Path: " & utilDoc.Path
+
+        ' List all available VBA projects
+        Debug.Print "Total VBA Projects available: " & Application.VBE.VBProjects.Count
+        Dim i As Integer
+        Dim proj As Object
+        For i = 1 To Application.VBE.VBProjects.Count
+            Set proj = Application.VBE.VBProjects(i)
+            Debug.Print "  Project " & i & ": " & proj.Name & " (FileName: " & proj.fileName & ")"
+        Next i
+
+        ' Try to access the Utilities.dotm VBProject
+        Dim utilProj As Object
+        Set utilProj = utilDoc.VBProject
+        Debug.Print "Utilities VBProject.Name: " & utilProj.Name
+
+        ' List all components (modules) in Utilities.dotm
+        Debug.Print "Components in Utilities VBProject: " & utilProj.VBComponents.Count
+        Dim comp As Object
+        For Each comp In utilProj.VBComponents
+            Debug.Print "  Component: " & comp.Name & " (Type: " & comp.Type & ")"
+        Next comp
+
+        Debug.Print "--- END DIAGNOSTICS ---"
+
         ' Now we can call its macro
+        ' Use the actual project name from diagnostics: "Project"
         Debug.Print "Calling LoadTemplates..."
-        Application.Run "OpenAllTemplates_v2.LoadTemplates"
+        Application.Run "Utilities.OpenAllTemplates_v2.LoadTemplates"
 
         If Err.Number <> 0 Then
             Debug.Print "ERROR calling LoadTemplates: " & Err.Number & " - " & Err.Description
@@ -533,3 +564,9 @@ Sub ManualImport()
     ImportMacrosFromFolder
     MsgBox "Manual import complete!", vbInformation
 End Sub
+
+
+
+
+
+
