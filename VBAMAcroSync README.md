@@ -31,8 +31,11 @@ Git-aware two-way synchronization between Word Normal.dotm macros and a local fo
 **On Word Close:** Exports all modules from Normal.dotm → folder
 
 **Git-Aware Design:** 
-   - Folder is source of truth after Git operations (pull/push). 
+   - When opening Word, folder is source of truth after Git operations (pull/push). 
+   - When closing Word, document template is source of truth. Changes overwrite contents in folder, and are then confirmed in Git interface
    - IMPORTANT: These macros have no conflict detection. Git handles merge conflicts.
+
+   (Note to user: Care must be taken not to edit the Macros in external editors such as VS Code while Word is open, as once Word is closed VMS_AutoExit() will overwrite any changes.)
 
 ## Daily Workflow with GitHub Desktop
 
@@ -99,7 +102,8 @@ View debug output in Immediate Window (Ctrl+G in VBA Editor).
 - Run `ManualImport` to see detailed error messages
 
 **Changes not syncing:**
-- Folder is source of truth—Git changes always override Normal.dotm
+- When opening Word, folder is source of truth—Git changes always override Normal.dotm
+- When closing Word, template file is source of truth- changes in template always override folder
 - If files are identical, import is skipped (optimization)
 - Check that you're editing the correct sync folder
 
