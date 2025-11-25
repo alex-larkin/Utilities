@@ -14,12 +14,12 @@ Private Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
 ' ========================================================================
 Private Function GetSyncFolderPath() As String
     Dim envPath As String
-    envPath = Environ("VBA_MACRO_SYNC_PATH")
+    envPath = Environ("MACROS_UTILITIES")
 
     If envPath <> "" Then
         GetSyncFolderPath = envPath
     Else
-        MsgBox "ERROR: Environment variable 'VBA_MACRO_SYNC_PATH' is not set." & vbCrLf & vbCrLf & _
+        MsgBox "ERROR: Environment variable 'MACROS_UTILITIES' is not set." & vbCrLf & vbCrLf & _
                "Please set this variable to your sync folder path." & vbCrLf & _
                "See README.md for setup instructions.", vbCritical, "VBA Macro Sync"
         GetSyncFolderPath = ""
