@@ -123,7 +123,7 @@ Private Function OpenAndHideTemplate(ByVal strFilePath As String, ByRef docTempl
     Debug.Print "Opening: " & strFileName
 
     ' Open the template file for editing (not as a template to create new docs)
-    Set docTemplate = Documents.Open(FileName:=strFilePath, _
+    Set docTemplate = Documents.Open(fileName:=strFilePath, _
                                      ReadOnly:=False, _
                                      AddToRecentFiles:=False, _
                                      Visible:=False)

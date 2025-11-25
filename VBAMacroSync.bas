@@ -39,7 +39,7 @@ End Function
 Sub AutoExec()
     Debug.Print "=== AutoExec START ==="
     Debug.Print "Current Time: " & Now
-    Debug.Print "Word Version: " & Application.Version
+    Debug.Print "Word Version: " & Application.VERSION
     Debug.Print "Normal Template Path: " & Application.NormalTemplate.FullName
 
     On Error Resume Next
