@@ -16,8 +16,8 @@ Git-aware two-way synchronization between Word template macros and local folders
 
 1. **Ensure Templates are in the Correct Location** (one-time setup):
    - **IMPORTANT:** For this sync system to work, templates must be saved in Word's STARTUP folder, not the Templates folder
-   - Templates should be located in: `%APPDATA%\Microsoft\Word\STARTUP`
-   - They should **NOT** be in: `%APPDATA%\Microsoft\Templates`
+   - Utilities.dotm and other custom templates should be located in: `%APPDATA%\Microsoft\Word\STARTUP`
+   - They should **NOT** be in: `%APPDATA%\Microsoft\Templates`. **Only Normal.dotm** should be in the Templates folder. 
    - To access the STARTUP folder:
      - Press `Windows + R` to open Run dialog
      - Type `%APPDATA%\Microsoft\Word\STARTUP` and press Enter

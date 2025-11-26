@@ -44,23 +44,55 @@ End Function
 ' Extract template base name from VBProject filename
 ' E.g., "C:\...\Normal.dotm" -> "Normal"
 Private Function GetTemplateBaseName(vbProj As Object) As String
+    On Error Resume Next
+
     Dim fullPath As String
     Dim fileName As String
     Dim baseName As String
+    Dim lastSlash As Long
 
     fullPath = vbProj.fileName
-    fileName = Dir(fullPath) ' Get just the filename
+
+    Debug.Print "  [GetTemplateBaseName] fullPath = '" & fullPath & "'"
+
+    If Err.Number <> 0 Then
+        Debug.Print "  [GetTemplateBaseName] ERROR accessing fileName: " & Err.Number & " - " & Err.Description
+        Err.Clear
+        GetTemplateBaseName = ""
+        Exit Function
+    End If
+
+    ' Find the last backslash to extract just the filename
+    lastSlash = InStrRev(fullPath, "\")
+    Debug.Print "  [GetTemplateBaseName] lastSlash = " & lastSlash
+
+    If lastSlash > 0 Then
+        fileName = Mid(fullPath, lastSlash + 1)
+    Else
+        ' No backslash found, use the whole path as filename
+        fileName = fullPath
+    End If
+
+    Debug.Print "  [GetTemplateBaseName] fileName = '" & fileName & "'"
 
     ' Remove .dotm or .dotx extension
     If Right(fileName, 5) = ".dotm" Then
         baseName = Left(fileName, Len(fileName) - 5)
+        Debug.Print "  [GetTemplateBaseName] Removed .dotm extension"
     ElseIf Right(fileName, 5) = ".dotx" Then
         baseName = Left(fileName, Len(fileName) - 5)
+        Debug.Print "  [GetTemplateBaseName] Removed .dotx extension"
     Else
+        ' No extension found, use the whole filename
         baseName = fileName
+        Debug.Print "  [GetTemplateBaseName] No .dotm/.dotx extension found"
     End If
 
+    Debug.Print "  [GetTemplateBaseName] baseName = '" & baseName & "'"
+
     GetTemplateBaseName = baseName
+
+    On Error GoTo 0
 End Function
 
 ' ========================================================================
@@ -424,17 +456,29 @@ Private Function ProcessImport(vbProj As Object, filePath As String, moduleName 
 
     ' Check if module already exists in the VBProject
     Debug.Print "    -> Checking if module already exists in template..."
+    Debug.Print "    -> Looking for module named: '" & moduleName & "'"
     moduleExists = False
+
+    Dim compCount As Integer
+    compCount = 0
     For Each vbComp In vbProj.VBComponents
+        compCount = compCount + 1
+        Debug.Print "    -> Component #" & compCount & ": '" & vbComp.Name & "' (comparing to '" & moduleName & "')"
         If vbComp.Name = moduleName Then
             moduleExists = True
-            Debug.Print "    -> Module EXISTS in template: " & moduleName
+            Debug.Print "    -> MATCH FOUND - Module EXISTS in template: " & moduleName
             Exit For
         End If
     Next vbComp
 
+    If Err.Number <> 0 Then
+        Debug.Print "    -> ERROR during component iteration: " & Err.Number & " - " & Err.Description
+        Err.Clear
+    End If
+
     If Not moduleExists Then
         Debug.Print "    -> Module does NOT exist in template (will import new module)"
+        Debug.Print "    -> Checked " & compCount & " components, no match found"
     End If
 
     ' If module exists, check if files are identical (optimization to skip unnecessary imports)
