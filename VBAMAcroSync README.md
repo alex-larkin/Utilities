@@ -14,11 +14,21 @@ Git-aware two-way synchronization between Word template macros and local folders
 
 ## Quick Start
 
-1. **Enable VBA Project Access** (one-time setup):
+1. **Ensure Templates are in the Correct Location** (one-time setup):
+   - **IMPORTANT:** For this sync system to work, templates must be saved in Word's STARTUP folder, not the Templates folder
+   - Templates should be located in: `%APPDATA%\Microsoft\Word\STARTUP`
+   - They should **NOT** be in: `%APPDATA%\Microsoft\Templates`
+   - To access the STARTUP folder:
+     - Press `Windows + R` to open Run dialog
+     - Type `%APPDATA%\Microsoft\Word\STARTUP` and press Enter
+     - Place your .dotm templates (Normal.dotm, Utilities.dotm, etc.) in this folder
+   - Templates in the STARTUP folder are automatically loaded by Word on startup
+
+2. **Enable VBA Project Access** (one-time setup):
    - Word → File → Options → Trust Center → Trust Center Settings
    - Enable "Trust access to the VBA project object model"
 
-2. **Set Environment Variables** (one-time setup):
+3. **Set Environment Variables** (one-time setup):
    - Press `Windows + R` to open Run dialog
    - Type `sysdm.cpl` and press Enter
    - Click the **"Advanced"** tab
@@ -35,7 +45,7 @@ Git-aware two-way synchronization between Word template macros and local folders
    - Click OK on all dialogs
    - Restart any open applications for the change to take effect
 
-3. **Set Up VBAMacroSync Module** (one-time setup):
+4. **Set Up VBAMacroSync Module** (one-time setup):
    - VBAMacroSync.bas should reside in **Utilities.dotm** (the central sync engine)
    - Each template that wants sync must implement simple AutoExec/AutoExit hooks that call the centralized VMS_AutoExec() and VMS_AutoExit() functions
    - See VBAMAcroSync_SRD.md for complete implementation details
