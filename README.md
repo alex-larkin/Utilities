@@ -1,3 +1,2 @@
-This repository contains various macros that have applications beyond just Bible translation. There are summarized below:
+This repository is for macros that have applications beyond just Bible translation. They are summarized below:
 * VBAMacroSync: Causes Word to sync all macro changes by exporting and importing modules as .bas files to a local folder. This allows git control of all macros and synchronization with GitHub. Synchronization occurs when opening and closing Word. 
-* TemplateViewer: Causes Word to automatically open all .dotm templates as hidden windows upon launch. This allows the user to see and edit all macros from all templates ("Projects") from the VBA Editor (Still a work in progress. )
