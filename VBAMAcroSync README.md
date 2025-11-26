@@ -1,6 +1,16 @@
 # VBA Macro Sync System
 
-Git-aware two-way synchronization between Word Normal.dotm macros and a local folder for collaborative development.
+Git-aware two-way synchronization between Word template macros and local folders for collaborative development. Supports multiple templates (Normal.dotm, Utilities.dotm, custom templates) with automatic discovery and sync.
+
+## Architecture Overview
+
+**Centralized Design:**
+- VBAMacroSync.bas resides in **Utilities.dotm** as the central sync engine
+- Each template implements simple AutoExec/AutoExit hooks to trigger sync
+- Templates are discovered automatically via environment variables (`MACROS_<TEMPLATENAME>`)
+- No code duplication—one sync module serves all templates
+
+**For complete technical specification, see:** [VBAMAcroSync_SRD.md](VBAMAcroSync_SRD.md)
 
 ## Quick Start
 
@@ -8,34 +18,47 @@ Git-aware two-way synchronization between Word Normal.dotm macros and a local fo
    - Word → File → Options → Trust Center → Trust Center Settings
    - Enable "Trust access to the VBA project object model"
 
-2. **Set Environment Variable** (one-time setup):
+2. **Set Environment Variables** (one-time setup):
    - Press `Windows + R` to open Run dialog
    - Type `sysdm.cpl` and press Enter
    - Click the **"Advanced"** tab
    - Click **"Environment Variables"** button at the bottom
-   - Under "User variables" (top section), click **"New..."**
-   - Enter:
-     - **Variable name:** `VBA_MACRO_SYNC_PATH`
-     - **Variable value:** `C:\Your\Path\To\SyncFolder\` (use your actual path, ending with `\`)
+   - Under "User variables" (top section), click **"New..."** for each template you want to sync
+   - Create variables using the pattern `MACROS_<TEMPLATENAME>`:
+     - For Normal.dotm:
+       - **Variable name:** `MACROS_NORMAL`
+       - **Variable value:** `C:\Your\Path\To\Macros\Normal\` (ending with `\`)
+     - For Utilities.dotm:
+       - **Variable name:** `MACROS_UTILITIES`
+       - **Variable value:** `C:\Your\Path\To\Macros\Utilities\` (ending with `\`)
+     - For custom templates, use the same pattern (e.g., `MACROS_MYTHEME` for MyTheme.dotm)
    - Click OK on all dialogs
    - Restart any open applications for the change to take effect
 
-3. **Import into Normal.dotm**:
-   - Open Word VBA Editor (Alt+F11)
-   - Import VBAMacroSync.bas into Normal template
-   - Close and reopen Word to activate
+3. **Set Up VBAMacroSync Module** (one-time setup):
+   - VBAMacroSync.bas should reside in **Utilities.dotm** (the central sync engine)
+   - Each template that wants sync must implement simple AutoExec/AutoExit hooks that call the centralized VMS_AutoExec() and VMS_AutoExit() functions
+   - See VBAMAcroSync_SRD.md for complete implementation details
+   - Close and reopen Word to activate automatic sync
 
 ## How It Works
 
-**On Word Open:** Imports all .bas/.cls/.frm files from folder → Normal.dotm
-**On Word Close:** Exports all modules from Normal.dotm → folder
+**Multi-Template Architecture:**
+- VBAMacroSync.bas resides in **Utilities.dotm** and provides sync services for all templates
+- Each template that wants sync implements simple AutoExec/AutoExit hooks
+- On Word startup, VMS_AutoExec() automatically discovers and syncs all configured templates
+- Templates are identified by environment variables (e.g., `MACROS_NORMAL`, `MACROS_UTILITIES`)
 
-**Git-Aware Design:** 
-   - When opening Word, folder is source of truth after Git operations (pull/push). 
-   - When closing Word, document template is source of truth. Changes overwrite contents in folder, and are then confirmed in Git interface
-   - IMPORTANT: These macros have no conflict detection. Git handles merge conflicts.
+**Sync Behavior:**
+- **On Word Open:** Imports all .bas/.cls/.frm files from each template's folder → template
+- **On Word Close:** Exports all modules from each template → corresponding folder
 
-   (Note to user: Care must be taken not to edit the Macros in external editors such as VS Code while Word is open, as once Word is closed VMS_AutoExit() will overwrite any changes.)
+**Git-Aware Design:**
+   - When opening Word, folder is source of truth after Git operations (pull/push)
+   - When closing Word, template is source of truth—changes overwrite folder contents, ready for Git commit
+   - IMPORTANT: No conflict detection in macros. Git handles merge conflicts.
+
+   (Note: Don't edit macros in external editors like VS Code while Word is open—VMS_AutoExit() will overwrite changes on Word close)
 
 ## Daily Workflow with GitHub Desktop
 
@@ -59,29 +82,31 @@ You can edit .bas files directly in VS Code while Word is closed:
 **Important:**
 - Preserve the `Attribute VB_Name = "ModuleName"` header line
 - Use CRLF line endings (Windows format)
-   - To check this, open a .bas file in VSC and click somewhere in the file. In the lower-right corder you should see "CRFL". If you see "LF", click "LF" and then select CRFL from the menu tat appears at the top of the screen.
+   - To check this, open a .bas file in VSC and click somewhere in the file. In the lower-right corner you should see "CRLF". If you see "LF", click "LF" and then select CRLF from the menu that appears at the top of the screen.
 - For special characters, save as ANSI/Windows-1252 encoding
 
 ## Deleting Modules
 
 Deletions are **not** automatically synced. To delete a module completely:
 
-1. Delete from Normal.dotm (VBA Editor)
-2. Delete corresponding .bas/.cls/.frm file from folder
+1. Delete from the template (VBA Editor)
+2. Delete corresponding .bas/.cls/.frm file from the sync folder
 3. Commit deletion to Git
 
-**Note:** If you only delete the file from the folder, it will reappear on Word close (exported from Normal.dotm). If you only delete from Normal.dotm, it will reappear on Word open (imported from folder).
+**Note:** If you only delete the file from the folder, it will reappear on Word close (exported from template). If you only delete from the template, it will reappear on Word open (imported from folder).
 
 ## Manual Testing
 
 Run these macros in VBA Editor for immediate sync without restarting Word:
 
-- `ManualExport` - Export Normal.dotm → folder
-- `ManualImport` - Import folder → Normal.dotm
+- `ManualExport` - Export all configured templates → their folders
+- `ManualImport` - Import all configured templates from their folders
 
-Important: close the VBA editor before running these macros. Otherwise Word will create duplicate modules of your existing VBA modules with the number 1 appended to them.
+**Location:** Both macros are in Utilities.dotm's VBAMacroSync module
 
-View debug output in Immediate Window (Ctrl+G in VBA Editor).
+**Important:** Close the VBA editor before running these macros. Otherwise Word will create duplicate modules with "1" appended to their names.
+
+View debug output in Immediate Window (Ctrl+G in VBA Editor). The output shows which templates were scanned and synced.
 
 ## File Types Supported
 
@@ -94,7 +119,10 @@ View debug output in Immediate Window (Ctrl+G in VBA Editor).
 **Macros not importing on Word open:**
 - Check Immediate Window (Ctrl+G) for debug messages
 - Verify VBA project access is enabled
-- Confirm `VBA_MACRO_SYNC_PATH` environment variable is set correctly
+- Confirm environment variables are set correctly (e.g., `MACROS_NORMAL`, `MACROS_UTILITIES`)
+- Ensure environment variable names match template names (uppercase, without .dotm extension)
+- Check that Utilities.dotm is loaded and contains VBAMacroSync.bas
+- Verify AutoExec/AutoExit hooks are implemented in the template
 
 **Import failed after editing in VS Code:**
 - Verify `Attribute VB_Name` matches filename
@@ -102,39 +130,55 @@ View debug output in Immediate Window (Ctrl+G in VBA Editor).
 - Run `ManualImport` to see detailed error messages
 
 **Changes not syncing:**
-- When opening Word, folder is source of truth—Git changes always override Normal.dotm
-- When closing Word, template file is source of truth- changes in template always override folder
+- When opening Word, folder is source of truth—Git changes always override template
+- When closing Word, template is source of truth—changes in template always override folder
 - If files are identical, import is skipped (optimization)
-- Check that you're editing the correct sync folder
+- Check that you're editing the correct sync folder for that template
+- Verify the template has an environment variable configured
+- Check that AutoExec/AutoExit hooks are calling VMS_AutoExec/VMS_AutoExit
 
 ## Configuration
 
-The sync folder path is configured via the `VBA_MACRO_SYNC_PATH` environment variable (see Quick Start, step 2).
+Sync folder paths are configured via environment variables using the pattern `MACROS_<TEMPLATENAME>`:
+- `MACROS_NORMAL` - for Normal.dotm
+- `MACROS_UTILITIES` - for Utilities.dotm
+- `MACROS_<CUSTOMNAME>` - for any custom template
 
-**Each user sets their own local path** - the path is not stored in the code or Git repository. This keeps your personal folder structure private.
+**Each user sets their own local paths** - paths are not stored in code or Git repository. This keeps your personal folder structure private.
+
+**Automatic Template Discovery:** VBAMacroSync automatically scans all loaded templates and syncs those with configured environment variables. No code changes needed to add new templates—just set the environment variable.
 
 **Recommendation:** Don't use auto-syncing cloud folders (Dropbox, OneDrive). Use Git for version control instead.
 
 ## Syncing Multiple Templates
 
-If you have additional .dotm or .dot template files beyond Normal.dotm, you can sync each independently:
+The refactored VBAMacroSync now has **built-in multi-template support**. Adding new templates is simple:
 
-1. **Copy VBAMacroSync.bas into each template** (via VBA Editor → File → Import)
-2. **Create a separate environment variable for each template**:
-   - Each template needs its own unique environment variable
-   - Follow the same steps as Quick Start (step 2) for each variable:
-     - Example variables:
-       - `VBA_MACRO_SYNC_PATH_NORMAL` → `C:\Your\Path\WordMacros\Normal\`
-       - `VBA_MACRO_SYNC_PATH_OTHER` → `C:\Your\Path\WordMacros\OtherTemplate\`
-3. **Modify the `GetSyncFolderPath()` function** in each template's copy of VBAMacroSync.bas to use the appropriate variable name:
+1. **Create environment variable for the new template**:
+   - Follow Quick Start step 2
+   - Use the naming pattern: `MACROS_<TEMPLATENAME>`
+   - Example: For MyCustom.dotm, create `MACROS_MYCUSTOM` → `C:\Path\To\Macros\MyCustom\`
+
+2. **Add AutoExec/AutoExit hooks in the template**:
+   - Each template needs simple hooks that call the centralized sync functions
+   - Example code for your template:
    ```vba
-   ' In Normal.dotm copy:
-   envPath = Environ("VBA_MACRO_SYNC_PATH_NORMAL")
+   ' In MyCustom.dotm
+   Public Sub AutoExec()
+       On Error Resume Next
+       Application.Run "Utilities.VBAMacroSync.VMS_AutoExec"
+   End Sub
 
-   ' In OtherTemplate.dotm copy:
-   envPath = Environ("VBA_MACRO_SYNC_PATH_OTHER")
+   Public Sub AutoExit()
+       On Error Resume Next
+       Application.Run "Utilities.VBAMacroSync.VMS_AutoExit"
+   End Sub
    ```
-4. **Each template syncs independently** - modules export to their own subdirectories
-5. **Note:** If you update VBAMacroSync.bas, you'll need to manually copy the updated version to each template.
 
-This approach keeps templates isolated and is ideal when you have a small number of template files (2-5) to manage.
+3. **Restart Word** - the new template will be automatically discovered and synced
+
+**Key Benefits:**
+- VBAMacroSync.bas stays in one place (Utilities.dotm)
+- No code duplication across templates
+- Easy to update—change VBAMacroSync once, all templates benefit
+- Templates are discovered automatically based on environment variables
