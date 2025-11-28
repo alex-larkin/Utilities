@@ -1,2 +1,0 @@
-This repository is for macros that have applications beyond just Bible translation. They are summarized below:
-* VBAMacroSync: Causes Word to sync all macro changes by exporting and importing modules as .bas files to a local folder. This allows git control of all macros and synchronization with GitHub. Synchronization occurs when opening and closing Word. 
