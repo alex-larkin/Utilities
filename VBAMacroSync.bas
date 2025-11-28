@@ -448,11 +448,20 @@ Private Function ProcessImport(vbProj As Object, filePath As String, moduleName 
     On Error Resume Next
 
     Dim vbComp As Object
+    Dim existingComp As Object ' Persistent reference to existing component
     Dim moduleExists As Boolean
     Dim filesIdentical As Boolean
     Dim tempExportPath As String
 
     ProcessImport = False ' Default to False
+    Set existingComp = Nothing ' Initialize
+
+    ' Check if we're trying to sync the project that's currently running this code
+    If IsCurrentlyExecutingProject(vbProj) Then
+        Debug.Print "    -> SKIPPING: Cannot modify VBComponents of currently executing project"
+        Debug.Print "    -> (This project is running VBAMacroSync right now)"
+        Exit Function
+    End If
 
     ' Check if module already exists in the VBProject
     Debug.Print "    -> Checking if module already exists in template..."
@@ -461,11 +470,25 @@ Private Function ProcessImport(vbProj As Object, filePath As String, moduleName 
 
     Dim compCount As Integer
     compCount = 0
+
+    ' Check if VBComponents collection is accessible
+    On Error Resume Next
+    compCount = vbProj.VBComponents.Count
+    If Err.Number <> 0 Then
+        Debug.Print "    -> ERROR accessing VBComponents collection: " & Err.Number & " - " & Err.Description
+        Debug.Print "    -> VBA Project access may be disabled, password protected, or currently executing."
+        Err.Clear
+        Exit Function
+    End If
+    Debug.Print "    -> VBComponents collection accessible, total count: " & compCount
+
+    compCount = 0
     For Each vbComp In vbProj.VBComponents
         compCount = compCount + 1
         Debug.Print "    -> Component #" & compCount & ": '" & vbComp.Name & "' (comparing to '" & moduleName & "')"
         If vbComp.Name = moduleName Then
             moduleExists = True
+            Set existingComp = vbComp ' Save persistent reference
             Debug.Print "    -> MATCH FOUND - Module EXISTS in template: " & moduleName
             Exit For
         End If
@@ -474,6 +497,7 @@ Private Function ProcessImport(vbProj As Object, filePath As String, moduleName 
     If Err.Number <> 0 Then
         Debug.Print "    -> ERROR during component iteration: " & Err.Number & " - " & Err.Description
         Err.Clear
+        Exit Function
     End If
 
     If Not moduleExists Then
@@ -484,11 +508,18 @@ Private Function ProcessImport(vbProj As Object, filePath As String, moduleName 
     ' If module exists, check if files are identical (optimization to skip unnecessary imports)
     If moduleExists Then
         Debug.Print "    -> Comparing with existing module..."
+
+        ' Verify we have a valid component reference
+        If existingComp Is Nothing Then
+            Debug.Print "    -> ERROR: existingComp is Nothing (should not happen)"
+            Exit Function
+        End If
+
         ' Export current version to a temp file for comparison
         tempExportPath = syncPath & "~temp_" & moduleName & fileExt
         Debug.Print "    -> Exporting current version to temp file: " & tempExportPath
 
-        vbComp.Export tempExportPath
+        existingComp.Export tempExportPath
         If Err.Number <> 0 Then
             Debug.Print "    -> ERROR exporting to temp file: " & Err.Number & " - " & Err.Description
             Err.Clear
@@ -518,13 +549,14 @@ Private Function ProcessImport(vbProj As Object, filePath As String, moduleName 
 
         ' Files differ: Remove existing module to import new version
         Debug.Print "    -> Removing existing module from template..."
-        vbProj.VBComponents.Remove vbComp
+        vbProj.VBComponents.Remove existingComp
         If Err.Number <> 0 Then
             Debug.Print "    -> ERROR removing module: " & Err.Number & " - " & Err.Description
             Err.Clear
             Exit Function
         End If
         Debug.Print "    -> Module removed successfully"
+        Set existingComp = Nothing ' Clear the reference
     End If
 
     ' Import the module from file (folder is source of truth)
@@ -544,6 +576,33 @@ End Function
 ' ========================================================================
 ' HELPER FUNCTIONS
 ' ========================================================================
+
+' Check if the given VBProject is the one currently executing this code
+' Returns True if we're trying to modify the project that's running VBAMacroSync
+' VBAMacroSync is located in VBAMacroSync.dotm, so check the project name
+Private Function IsCurrentlyExecutingProject(vbProj As Object) As Boolean
+    On Error Resume Next
+
+    Dim projectPath As String
+    Dim templateBaseName As String
+
+    ' Get the base name of this project
+    templateBaseName = GetTemplateBaseName(vbProj)
+
+    Debug.Print "      [IsCurrentlyExecutingProject] Checking: " & templateBaseName
+
+    ' VBAMacroSync resides in VBAMacroSync.dotm
+    ' If this is the VBAMacroSync project, we can't modify it while it's running
+    If UCase(templateBaseName) = "VBAMACROSYNC" Then
+        Debug.Print "      [IsCurrentlyExecutingProject] This is VBAMacroSync - SKIP (currently executing)"
+        IsCurrentlyExecutingProject = True
+    Else
+        Debug.Print "      [IsCurrentlyExecutingProject] Not VBAMacroSync - OK to process"
+        IsCurrentlyExecutingProject = False
+    End If
+
+    On Error GoTo 0
+End Function
 
 ' Compare two files to see if they're identical
 Private Function FilesAreIdentical(file1 As String, file2 As String) As Boolean
